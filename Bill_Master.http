@@ -1,0 +1,6 @@
+@Bill_Master_HostAddress = http://localhost:5054
+
+GET {{Bill_Master_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
