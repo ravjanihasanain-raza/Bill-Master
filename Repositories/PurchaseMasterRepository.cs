@@ -105,9 +105,17 @@ namespace Bill_Master.Repositories
                         p.BillNo,
                         p.BillDate,
 
-                        Vendor = p.Vendor != null ? p.Vendor.BusinessName : "",
+                        // FIX
+                        VendorId = p.VendorId,
+
+                        VendorName = p.Vendor != null
+        ? p.Vendor.BusinessName
+        : "",
 
                         Total = p.Total,
+                        GrossAmount = p.GrossAmount,
+                        GstAmount = p.GstAmount,
+
                         PurchaseItems = p.PurchaseItems.Select(i => new
                         {
                             i.Id,
@@ -117,21 +125,20 @@ namespace Bill_Master.Repositories
                             i.Amount,
                             i.Total
                         }),
-                        // ✅ SAFE CALCULATIONS
+
                         PaidAmount = p.PurchasePayments
-                            .Sum(x => (decimal?)x.Amount) ?? 0,
+        .Sum(x => (decimal?)x.Amount) ?? 0,
 
                         PendingAmount = p.Total -
-                            (p.PurchasePayments.Sum(x => (decimal?)x.Amount) ?? 0),
+        (p.PurchasePayments.Sum(x => (decimal?)x.Amount) ?? 0),
 
                         Status =
-                            (p.PurchasePayments.Sum(x => (decimal?)x.Amount) ?? 0) == 0
-                                ? "Unpaid"
-                                : (p.Total - (p.PurchasePayments.Sum(x => (decimal?)x.Amount) ?? 0)) == 0
-                                    ? "Paid"
-                                    : "Partial"
-                    })
-                    .ToListAsync();
+        (p.PurchasePayments.Sum(x => (decimal?)x.Amount) ?? 0) == 0
+            ? "Unpaid"
+            : (p.Total - (p.PurchasePayments.Sum(x => (decimal?)x.Amount) ?? 0)) == 0
+                ? "Paid"
+                : "Partial"
+                    }).ToListAsync();
 
                 return new ResponseResult("OK", data);
             }

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 // Add services to the container.
 
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
@@ -27,6 +28,9 @@ builder.Services.AddScoped<IInvoiceItems, InvoiceItemsRepository>();
 builder.Services.AddScoped<IInvoicePayment, InvoicePaymentRepository>();
 builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 builder.Services.AddScoped<StockRepository>();
+builder.Services.AddScoped<IExpenseCategory, ExpenseCategoryRepository>();
+
+builder.Services.AddScoped<IExpenseMaster, ExpenseMasterRepository>();
 
 builder.Services.AddScoped<EmailService>();
 
@@ -44,9 +48,12 @@ builder.Services.AddCors(options =>
     options.AddPolicy("ReactPolicy",
         policy =>
         {
-            policy.WithOrigins("http://localhost:5173")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
+            policy.WithOrigins(
+                    "http://localhost:5173",
+                    "http://localhost:5174"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod();
         });
 });
 var app = builder.Build();
@@ -64,10 +71,10 @@ app.UseHttpsRedirection();
 
 
 
+app.UseCors("ReactPolicy");
+
 app.UseAuthorization();
 
 app.MapControllers();
-
-app.UseCors("ReactPolicy");
 
 app.Run();

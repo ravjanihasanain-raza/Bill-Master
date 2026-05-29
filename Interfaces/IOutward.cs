@@ -14,6 +14,6 @@ namespace Bill_Master.Interfaces
         Task<ResponseResult> DeleteOutward(int id);
 
         Task<ResponseResult> UpdateOutward(Outward outward);
-        Task<ResponseResult> AutoFromInvoice(InvoiceDto dto);
+        //Task<ResponseResult> AutoFromInvoice(InvoiceDto dto);
     }
 }

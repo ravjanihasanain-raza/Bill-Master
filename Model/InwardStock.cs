@@ -20,8 +20,8 @@
         // 🔑 FK → StaffMaster (REQUIRED)
         public int StaffUserId { get; set; }
         public virtual StaffMaster? StaffUser { get; set; }
-        public int ProductMasterId { get; set; }
-        public ProductMaster ProductMaster { get; set; }
+        //public int ProductMasterId { get; set; }
+        //public ProductMaster? ProductMaster { get; set; }
 
         // 🔥 Relation → StockUsed
         public virtual ICollection<StockUsed> StockUseds { get; set; } = new HashSet<StockUsed>();

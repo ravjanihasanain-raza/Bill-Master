@@ -49,17 +49,32 @@ namespace Bill_Master.Repositories
         {
             try
             {
-                var data = await _dbContext.Outwards
-                    .Include(o => o.StaffMaster)
-                    .Select(o => new
+                var data = await _dbContext.StockUseds
+                    .Include(x => x.InvoiceMaster)
+                        .ThenInclude(i => i.StaffMaster)
+                    .Include(x => x.InwardStock)
+                        .ThenInclude(i => i.PurchaseItem)
+                            .ThenInclude(p => p.ProductMaster)
+                    .GroupBy(x => x.InvoiceMasterId)
+                    .Select(g => new
                     {
-                        o.Id,
-                        o.StaffMasterId,
-                        StaffName = o.StaffMaster!.FullName,
-                        o.Remark,
-                        o.OutwardDate,
-                        o.CreatedAt
+                        Id = g.First().InvoiceMasterId,
+
+                        OutwardNo = "OUT-" + g.First().InvoiceMasterId,
+
+                        StaffName = g.First().InvoiceMaster.StaffMaster.FullName,
+
+                        Remark = "Generated From Invoice",
+
+                        OutwardDate = g.First().OutwardDate,
+
+                        TotalItems = g.Count(),
+
+                        TotalQtyUsed = g.Sum(x => x.Qty),
+
+                        Status = "Consumed"
                     })
+                    .OrderByDescending(x => x.OutwardDate)
                     .ToListAsync();
 
                 return new ResponseResult("OK", data);
@@ -75,24 +90,57 @@ namespace Bill_Master.Repositories
         {
             try
             {
-                var data = await _dbContext.Outwards
-                    .Include(o => o.StaffMaster)
-                    .Where(o => o.Id == id)
-                    .Select(o => new
+                var stockData = await _dbContext.StockUseds
+                    .Include(x => x.InvoiceMaster)
+                        .ThenInclude(i => i.StaffMaster)
+                    .Include(x => x.InwardStock)
+                        .ThenInclude(i => i.PurchaseItem)
+                            .ThenInclude(p => p.ProductMaster)
+                    .Where(x => x.InvoiceMasterId == id)
+                    .ToListAsync();
+
+                if (!stockData.Any())
+                    return new ResponseResult("Fail", "No record found");
+
+                var first = stockData.First();
+
+                var result = new
+                {
+                    Id = id,
+
+                    OutwardNumber = "OUT-" + id,
+
+                    StaffName = first.InvoiceMaster.StaffMaster.FullName,
+
+                    ConsumptionDate = first.OutwardDate,
+
+                    TotalItemsConsumed = stockData.Count,
+
+                    TotalQtyUsed = stockData.Sum(x => x.Qty),
+
+                    FinancialYear = "2026-2027",
+
+                    Remark = "Generated from Invoice",
+
+                    ConsumedItems = stockData.Select(x => new
                     {
-                        o.Id,
-                        o.StaffMasterId,
-                        StaffName = o.StaffMaster!.FullName,
-                        o.Remark,
-                        o.OutwardDate,
-                        o.CreatedAt
-                    })
-                    .FirstOrDefaultAsync();
+                        ProductName = x.InwardStock.PurchaseItem.ProductMaster.Name,
 
-                if (data == null)
-                    return new ResponseResult("Fail", "Record not found");
+                        BatchNo = x.InwardStock.BatchNo,
 
-                return new ResponseResult("OK", data);
+                        QtyUsed = x.Qty,
+
+                        AvailableQty =
+                            x.InwardStock.Qty -
+                            x.InwardStock.StockUseds.Sum(s => s.Qty),
+
+                        Unit = x.InwardStock.PurchaseItem.ProductMaster.Unit,
+
+                        ConsumptionDate = x.OutwardDate
+                    }).ToList()
+                };
+
+                return new ResponseResult("OK", result);
             }
             catch (Exception ex)
             {
@@ -153,68 +201,68 @@ namespace Bill_Master.Repositories
                 return new ResponseResult("Fail", ex.Message);
             }
         }
-        public async Task<ResponseResult> AutoFromInvoice(InvoiceDto dto)
-        {
-            using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        //public async Task<ResponseResult> AutoFromInvoice(InvoiceDto dto)
+        //{
+        //    using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            try
-            {
-                foreach (var item in dto.Items)
-                {
-                    decimal remainingQty = item.Qty;
+        //    try
+        //    {
+        //        foreach (var item in dto.Items)
+        //        {
+        //            decimal remainingQty = item.Qty;
 
-                    // 🔥 FIFO: oldest inward first
-                    var inwardStocks = await _dbContext.InwardStocks
-                        .Where(x => x.ProductMasterId == item.ProductId)
-                        .OrderBy(x => x.InwardDate)
-                        .ToListAsync();
+        //            // 🔥 FIFO: oldest inward first
+        //            var inwardStocks = await _dbContext.InwardStocks
+        //                .Where(x => x.ProductMasterId == item.ProductId)
+        //                .OrderBy(x => x.InwardDate)
+        //                .ToListAsync();
 
-                    foreach (var inward in inwardStocks)
-                    {
-                        // available stock calculate
-                        var usedQty = await _dbContext.StockUseds
-                            .Where(x => x.InwardStockId == inward.Id)
-                            .SumAsync(x => (decimal?)x.Qty) ?? 0;
+        //            foreach (var inward in inwardStocks)
+        //            {
+        //                // available stock calculate
+        //                var usedQty = await _dbContext.StockUseds
+        //                    .Where(x => x.InwardStockId == inward.Id)
+        //                    .SumAsync(x => (decimal?)x.Qty) ?? 0;
 
-                        var available = inward.Qty - usedQty;
+        //                var available = inward.Qty - usedQty;
 
-                        if (available <= 0)
-                            continue;
+        //                if (available <= 0)
+        //                    continue;
 
-                        var deductQty = Math.Min(available, remainingQty);
+        //                var deductQty = Math.Min(available, remainingQty);
 
-                        // 🔥 SAVE STOCK USED
-                        _dbContext.StockUseds.Add(new StockUsed
-                        {
-                            InwardStockId = inward.Id,
-                            Qty = deductQty,
-                            OutwardDate = DateTime.Now,
-                            InvoiceMasterId = dto.InvoiceId
-                        });
+        //                // 🔥 SAVE STOCK USED
+        //                _dbContext.StockUseds.Add(new StockUsed
+        //                {
+        //                    InwardStockId = inward.Id,
+        //                    Qty = deductQty,
+        //                    OutwardDate = DateTime.Now,
+        //                    InvoiceMasterId = dto.InvoiceId
+        //                });
 
-                        remainingQty -= deductQty;
+        //                remainingQty -= deductQty;
 
-                        if (remainingQty <= 0)
-                            break;
-                    }
+        //                if (remainingQty <= 0)
+        //                    break;
+        //            }
 
-                    // ❌ अगर stock कम है
-                    if (remainingQty > 0)
-                    {
-                        throw new Exception($"Insufficient stock for productId {item.ProductId}");
-                    }
-                }
+        //            // ❌ अगर stock कम है
+        //            if (remainingQty > 0)
+        //            {
+        //                throw new Exception($"Insufficient stock for productId {item.ProductId}");
+        //            }
+        //        }
 
-                await _dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
+        //        await _dbContext.SaveChangesAsync();
+        //        await transaction.CommitAsync();
 
-                return new ResponseResult("OK", "Stock deducted using FIFO");
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                return new ResponseResult("Fail", ex.Message);
-            }
-        }
+        //        return new ResponseResult("OK", "Stock deducted using FIFO");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await transaction.RollbackAsync();
+        //        return new ResponseResult("Fail", ex.Message);
+        //    }
+        //}
     }
 }

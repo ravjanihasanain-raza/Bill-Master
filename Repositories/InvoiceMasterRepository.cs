@@ -176,9 +176,12 @@ namespace Bill_Master.Repositories
                             InwardStockId = inward.Id,
                             Qty = consumeQty,
                             OutwardDate = DateTime.Now,
-                            OutwardMasterId = null // ⚠️ make this nullable in model
-                        };
 
+                            InvoiceMasterId = invoice.Id,
+
+                            // IMPORTANT FIX
+                            OutwardMasterId = null
+                        };
                         await _dbContext.StockUseds.AddAsync(stockUsed);
 
                         requiredQty -= consumeQty;
@@ -229,12 +232,19 @@ namespace Bill_Master.Repositories
                         i.Id,
                         i.InvoiceNo,
                         i.InvoiceDate,
+
+                        // IMPORTANT
+                        i.ClientMasterId,
+                        i.GrossAmount,
+                        i.GstAmount,
+
                         i.Total,
+
                         ClientName = i.ClientMaster!.BusinessName,
                         StaffName = i.StaffMaster!.FullName,
 
                         PaidAmount = i.InvoicePayments
-                            .Sum(p => (decimal?)p.Amount) ?? 0
+        .Sum(p => (decimal?)p.Amount) ?? 0
                     })
                     .ToListAsync();
 
@@ -244,12 +254,25 @@ namespace Bill_Master.Repositories
                     Id = i.Id,
                     InvoiceNo = i.InvoiceNo,
                     InvoiceDate = i.InvoiceDate,
+
+                    // ✅ IMPORTANT
+                    ClientMasterId = i.ClientMasterId,
+
+                    GrossAmount = i.GrossAmount,
+                    GstAmount = i.GstAmount,
+
                     Total = i.Total,
+
                     ClientName = i.ClientName,
                     StaffName = i.StaffName,
 
                     PaidAmount = i.PaidAmount,
-PendingAmount = i.Total - i.PaidAmount,
+                    PendingAmount = i.Total - i.PaidAmount,
+
+                    // ✅ IMPORTANT
+                    Status = (i.Total - i.PaidAmount) <= 0
+        ? "Paid"
+        : "Pending"
                 }).ToList();
 
                 return new ResponseResult("OK", result);
@@ -276,10 +299,13 @@ PendingAmount = i.Total - i.PaidAmount,
                         x.Id,
                         x.InvoiceNo,
                         x.InvoiceDate,
+                        x.PONumber,
+                        x.PODate,
                         x.GrossAmount,
                         x.GstAmount,
                         x.Total,
                         x.ClientMasterId,
+                       
 
                         // ✅ CLIENT FULL
                         Client = new
@@ -423,7 +449,11 @@ PendingAmount = i.Total - i.PaidAmount,
                             InwardStockId = inward.Id,
                             Qty = consumeQty,
                             OutwardDate = DateTime.Now,
-                            InvoiceMasterId = existing.Id
+
+                            InvoiceMasterId = existing.Id,
+
+                            // IMPORTANT
+                            OutwardMasterId = null
                         };
 
                         await _dbContext.StockUseds.AddAsync(stockUsed);

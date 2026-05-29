@@ -29,6 +29,7 @@ namespace Bill_Master.Model
         
         public int? OutwardMasterId { get; set; }
         public virtual Outward? OutwardMaster { get; set; }
+        public virtual InvoiceMaster? InvoiceMaster { get; set; }
         public int InvoiceMasterId { get; set; }
 
 

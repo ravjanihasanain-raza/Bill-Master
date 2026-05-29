@@ -94,30 +94,30 @@ namespace Bill_Master.Controllers
             }
         }
         // ✅ AUTO OUTWARD FROM INVOICE
-        [HttpPost("AutoFromInvoice")]
-        public async Task<IActionResult> AutoFromInvoice([FromBody] InvoiceDto dto)
-        {
-            try
-            {
-                if (dto == null || dto.Items == null || !dto.Items.Any())
-                {
-                    return BadRequest(new ResponseResult("Fail", "Invalid invoice data"));
-                }
+        //[HttpPost("AutoFromInvoice")]
+        //public async Task<IActionResult> AutoFromInvoice([FromBody] InvoiceDto dto)
+        //{
+        //    try
+        //    {
+        //        if (dto == null || dto.Items == null || !dto.Items.Any())
+        //        {
+        //            return BadRequest(new ResponseResult("Fail", "Invalid invoice data"));
+        //        }
 
-                var result = await _outwardRepository.AutoFromInvoice(dto);
+        //        var result = await _outwardRepository.AutoFromInvoice(dto);
 
-                if (result.Status != "OK")
-                {
-                    return BadRequest(result);
-                }
+        //        if (result.Status != "OK")
+        //        {
+        //            return BadRequest(result);
+        //        }
 
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500,
-                    new ResponseResult("Fail", ex.InnerException?.Message ?? ex.Message));
-            }
-        }
+        //        return Ok(result);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500,
+        //            new ResponseResult("Fail", ex.InnerException?.Message ?? ex.Message));
+        //    }
+        //}
     }
 }

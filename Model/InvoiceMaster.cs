@@ -19,6 +19,9 @@ namespace Bill_Master.Model
         // ⭐ Invoice Date
         [Required]
         public DateTime InvoiceDate { get; set; }
+        public string? PONumber { get; set; }
+
+        public DateTime? PODate { get; set; }
 
         // ⭐ Amounts
         [Required]
@@ -29,6 +32,7 @@ namespace Bill_Master.Model
 
         [Required]
         public decimal Total { get; set; }
+
 
         // 🔑 FK → StaffMaster (Created By)
         [Required]

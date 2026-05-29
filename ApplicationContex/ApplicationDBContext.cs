@@ -30,6 +30,9 @@ namespace Bill_Master.ApplicationContext
         public DbSet<InvoiceItems> InvoiceItems { get; set; }
         public DbSet<InvoicePayment> InvoicePayments { get; set; }
         public DbSet<Stock> Stocks { get; set; }
+        public DbSet<ExpenseCategory> ExpenseCategory { get; set; }
+
+        public DbSet<ExpenseMaster> ExpenseMaster { get; set; }
 
 
     }

@@ -40,11 +40,11 @@ namespace Bill_Master.Repositories
                     return new ResponseResult("Fail", "Invalid InwardStock");
 
                 // 🔥 Outward Exist Check
-                var outwardExists = await _dbContext.Outwards
-                    .AnyAsync(x => x.Id == stockUsed.OutwardMasterId);
+                //var outwardExists = await _dbContext.Outwards
+                //    .AnyAsync(x => x.Id == stockUsed.OutwardMasterId);
 
-                if (!outwardExists)
-                    return new ResponseResult("Fail", "Invalid Outward");
+                //if (!outwardExists)
+                //    return new ResponseResult("Fail", "Invalid Outward");
 
                 _dbContext.StockUseds.Add(stockUsed);
                 await _dbContext.SaveChangesAsync();
@@ -70,7 +70,8 @@ namespace Bill_Master.Repositories
                         x.InwardStockId,
                         x.Qty,
                         x.OutwardDate,
-                        x.OutwardMasterId
+                        x.OutwardMasterId,
+                        x.InvoiceMasterId
                     })
                     .ToListAsync();
 

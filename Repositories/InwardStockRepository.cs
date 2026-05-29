@@ -17,6 +17,7 @@ namespace Bill_Master.Repositories
         // ⭐ SAVE INWARD
         public async Task<ResponseResult> SaveInward(InwardStock inward)
         {
+            using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
                 var purchaseItem = await _dbContext.PurchaseItems
@@ -37,7 +38,7 @@ namespace Bill_Master.Repositories
                 if (totalInward + inward.Qty > purchaseItem.Qty)
                     return new ResponseResult("Fail", "Qty exceeds purchase");
 
-                inward.ProductMasterId = purchaseItem.ProductMasterId;
+                //inward.ProductMasterId = purchaseItem.ProductMasterId;
 
                 // ✅ SAVE INWARD
                 _dbContext.InwardStocks.Add(inward);
@@ -70,16 +71,21 @@ namespace Bill_Master.Repositories
                 }
 
                 await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 // ============================
                 // 🔥 STOCK UPDATE LOGIC END
                 // ============================
-
                 return new ResponseResult("OK", "Stock inward + stock updated");
             }
             catch (Exception ex)
             {
-                return new ResponseResult("Fail", ex.Message);
+                await transaction.RollbackAsync();
+
+                return new ResponseResult(
+    "Fail",
+    ex.InnerException?.Message ?? ex.Message
+);
             }
         }
 
@@ -221,10 +227,20 @@ namespace Bill_Master.Repositories
                     return new ResponseResult("Fail", "Invalid inward id");
 
                 var existing = await _dbContext.InwardStocks
-                    .FirstOrDefaultAsync(x => x.Id == id);
+    .Include(x => x.StockUseds)
+    .FirstOrDefaultAsync(x => x.Id == id);
+
 
                 if (existing == null)
                     return new ResponseResult("Fail", "Inward not found");
+
+                if (existing.StockUseds.Any())
+                {
+                    return new ResponseResult(
+                        "Fail",
+                        "Cannot delete inward stock already used in outward/invoice"
+                    );
+                }
 
                 // purchase item
                 var purchaseItem = await _dbContext.PurchaseItems
