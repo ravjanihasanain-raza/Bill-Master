@@ -155,12 +155,9 @@ before running the application.
 
 ## Planned Enhancements
 
-* PDF Invoice Generation
 * Email Notifications
-* Analytics Dashboard
 * Advanced Reporting System
 * Multi-Role Permission Management
-* Export to Excel & PDF
 
 ---
 
